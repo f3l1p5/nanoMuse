@@ -18,7 +18,9 @@ jobs:
         cat .github/local-gguf-patch/*.b64 | base64 -d | gzip -d > /tmp/local.patch
         git apply /tmp/local.patch
         git clone --depth 1 https://github.com/ggml-org/llama.cpp.git android/deps/llama.cpp
+        sed -i '/mparams.use_mmap = true;/d' android/src/android/app/src/main/cpp/local_llama.cpp
         sed -i 's/^    fun generate(/    internal fun generate(/' android/src/android/app/src/main/java/io/github/nanomuse/localai/LocalLlamaBridge.kt
+        sed -i 's/import androidx.compose.material.icons.outlined.Image/import androidx.compose.material.icons.outlined.Image\nimport androidx.compose.material.icons.outlined.Memory/' android/src/android/app/src/main/java/io/github/nanomuse/ui/models/ModelsScreen.kt
     - name: Build
       run: |
         export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/27.2.12479018"
