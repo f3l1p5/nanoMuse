@@ -21,6 +21,16 @@ jobs:
         sed -i '/mparams.use_mmap = true;/d' android/src/android/app/src/main/cpp/local_llama.cpp
         sed -i 's/^    fun generate(/    internal fun generate(/' android/src/android/app/src/main/java/io/github/nanomuse/localai/LocalLlamaBridge.kt
         sed -i 's/import androidx.compose.material.icons.outlined.Image/import androidx.compose.material.icons.outlined.Image\nimport androidx.compose.material.icons.outlined.Memory/' android/src/android/app/src/main/java/io/github/nanomuse/ui/models/ModelsScreen.kt
+        sed -i 's/SettingsScaffold(title = "Local models", onBack = onBack) {/SettingsScaffold(title = "Local models", onBack = onBack, scrollable = false) {/' android/src/android/app/src/main/java/io/github/nanomuse/localai/LocalModelsScreen.kt
+        sed -i 's/modifier = Modifier.padding(horizontal = 16.dp),/modifier = Modifier.weight(1f).padding(horizontal = 16.dp),/' android/src/android/app/src/main/java/io/github/nanomuse/localai/LocalModelsScreen.kt
+        sed -i 's/import androidx.compose.foundation.layout.padding/import androidx.compose.foundation.layout.padding\nimport androidx.compose.foundation.layout.weight/' android/src/android/app/src/main/java/io/github/nanomuse/localai/LocalModelsScreen.kt
+        python3 - <<'PY'
+        p='android/src/android/app/src/main/java/com/openminis/app/provider/ProviderFactory.kt'
+        s=open(p).read()
+        needle='    fun create(instance: ProviderInstance, apiKey: String, model: LLMModel, context: Context? = null): LLMProvider {\n'
+        inject='''    fun create(instance: ProviderInstance, apiKey: String, model: LLMModel, context: Context? = null): LLMProvider {\n        if (instance.id == "nanomuse-local-gguf" && context != null) {\n            val file = io.github.nanomuse.localai.LocalProviderRegistry.modelPath(context, model.id)\n                ?: return io.github.nanomuse.localai.MissingLocalModelProvider(model)\n            if (!io.github.nanomuse.localai.LocalModelState.matches(file.absolutePath)) {\n                io.github.nanomuse.localai.LocalLlamaBridge.unload()\n                io.github.nanomuse.localai.LocalLlamaBridge.load(file.absolutePath)\n                io.github.nanomuse.localai.LocalModelState.path = file.absolutePath\n            }\n            return io.github.nanomuse.localai.LocalLlamaProvider(model)\n        }\n'''
+        open(p,'w').write(s.replace(needle,inject))
+        PY
     - name: Build
       run: |
         export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/27.2.12479018"
@@ -28,4 +38,4 @@ jobs:
         cd android/src/android
         ./gradlew :app:assembleDebug --console=plain --no-daemon
     - uses: actions/upload-artifact@v4
-      with: {name: nanoMuse-local-GGUF-debug-apk, path: android/src/android/app/build/outputs/apk/debug/app-debug.apk}
+      with: {name: nanoMuse-local-GGUF-fixed-apk, path: android/src/android/app/build/outputs/apk/debug/app-debug.apk}
